@@ -1,140 +1,127 @@
-# Smart Partner API Usage Monitoring with Slack, Jira & Gmail Alerts
+# Gold vs Equity Performance Comparison Tracker with Visual Insights
 
-This workflow monitors partner API usage in real time and triggers alerts based on usage thresholds. It validates incoming data, calculates usage percentage and routes actions using a Switch node. Slack notifications are sent at 80%, Jira tickets are created at 90% and critical alerts (Email + Jira + Slack) are triggered at 100%.
+This automated n8n workflow evaluates the historical performance of gold against equity markets. It extracts daily price data from Google Sheets, calculates comparative returns and uses an AI agent to generate actionable investment insights. Finally, it creates a visual performance chart and emails a smartly formatted HTML report—triggering a high-priority alert if the performance gap exceeds a defined threshold.
 
 ### Quick Implementation Steps
 
-1. Import the workflow into n8n.
-2. Configure the Webhook node and test with sample data.
-3. Add credentials for Slack, Jira and Gmail.
-4. Update Slack channel ID, Jira project and email recipient.
-5. Activate the workflow.
-6. Send test payloads to verify all alert levels.
+1. **Import the Workflow:** Upload the downloaded JSON file into your n8n workspace.
+2. **Connect Credentials:** Authenticate your Google Sheets, Gmail and Groq API accounts in their respective nodes.
+3. **Map Your Data:** Select your specific Google Sheet documents for both the Gold and Equity data fetching nodes.
+4. **Set Your Parameters:** Open the `Set Analysis Parameters` node to define your target date range and performance gap threshold.
+5. **Execute:** Click "Test Workflow" to generate and receive your first automated financial comparison report.
 
-## What This Workflow Does
+## What It Does
 
-This workflow helps monitor partner API usage automatically and ensures timely alerts when usage reaches defined thresholds. It starts by receiving usage data through a webhook, validating the payload and calculating the usage percentage based on quota and consumption values.
+This workflow acts as an automated financial analyst. It begins by pulling day-by-day pricing for two distinct assets—Gold and Equity—from standard Google Sheets. A custom script then merges this data, ensuring dates match up perfectly while filtering out any information outside of your target date window. Once the data is aligned, the workflow calculates the percentage returns for both assets and determines the exact performance difference.
 
-Once calculated, the workflow routes the data using a Switch node:
+Instead of just presenting raw numbers, the workflow passes these calculated metrics to an advanced AI Agent powered by Llama-3. The AI is prompted to step into the role of an investment advisor, evaluating the numbers to declare a "winner," providing realistic market context and suggesting a strategic portfolio allocation (e.g., 60% Equity / 40% Gold) based strictly on the provided data.
 
-- **80% usage** → Sends an early warning Slack notification.
-- **90% usage** → Creates a Jira ticket and sends a Slack notification.
-- **100% usage** → Sends a critical email alert, creates a Jira ticket and posts a Slack notification.
+To wrap it all up, the system generates a dynamic line chart URL using [QuickChart.io](http://QuickChart.io). It packages the chart, the raw numbers and the AI's written insights into a clean HTML email. If one asset drastically outperforms the other (based on a threshold you set), the system routes the email as a special "ALERT". Finally, it logs a summary of the report back into a fresh Google Sheet for long-term record keeping.
 
-This approach provides better visibility, enables timely action and helps prevent service disruption.
+## Who’s It For
 
-## Who's This For?
+This workflow is perfect for
 
-- SaaS platforms with API-based billing
-- DevOps and Engineering teams
-- Product and Platform teams
-- Customer Success managers
-- Businesses managing partner integrations
+* financial analysts,
+* portfolio managers,
+* wealth advisors,
+* and self-directed investors
 
-## Requirements
+who want to automate their market tracking. It is highly beneficial for teams that need consistent, data-backed comparative reporting without the manual labor of crunching spreadsheet numbers and drafting summaries every week.
 
-- **n8n** (Cloud or self-hosted). If you don't have an instance yet, you can deploy one using our **[n8n Automation Solutions](https://www.weblineindia.com/n8n-automation/)**.
-- Slack account with API access
-- Jira Software Cloud account
-- Gmail account (OAuth configured in n8n)
-- API or system capable of sending usage data via webhook
+## Requirements to Use This Workflow
 
-## How It Works & Setup Guide
+* An active [**n8n account**: (Self-hosted or Cloud)](https://n8n.partnerlinks.io/om1efg2qgvwi) (compatible with self-hosted version 2.1.5 or newer).
+* A **Google Workspace account** to authenticate both Google Sheets and Gmail nodes.
+* A **Groq API account** to power the Llama-3 language model for AI insights.
+* A **Google Sheet** populated with daily historical prices for Gold and Equity.
 
-### 1. Webhook Setup
+## How It Works & Set Up
 
-Configure the **Incoming Partner Usage Data** node.
+**1. Define Your Analysis Scope**
 
-- Accept **POST** requests.
-- Required payload fields:
-  - `partner_id`
-  - `partner_name`
-  - `quota`
-  - `consumed`
-  - `timestamp`
+Start at the `Set Analysis Parameters` node. Here, you will define the `startDate`, `endDate` and the `threshold` percentage. This threshold is the performance gap required to trigger an urgent alert rather than a standard report.
 
-### 2. Validate Payload
+**2. Ingest the Market Data**
 
-The workflow validates incoming requests for:
+The workflow branches into two Google Sheets nodes (`Fetch Gold Prices` and `Fetch Equity Prices`). You will need to select your Google account credentials and point these nodes to the specific worksheets containing your date and price columns.
 
-- Missing required fields
-- Invalid values
-- Incorrect data formats
+**3. Merge and Calculate**
 
-### 3. Calculate Usage
+The `Merge Market Data` node uses JavaScript to combine both data streams into a single timeline. The subsequent `Calculate Performance Metrics` node does the math, calculating the total percentage return for both assets over your chosen timeframe.
 
-The workflow calculates API usage percentage using the provided quota and consumed values.
+**4. Generate AI Insights**
 
-If usage is below **80%**, execution stops without sending notifications.
+The `Generate AI Investment Insights` Langchain agent takes the calculated returns and sends them to the Groq language model. Make sure your Groq credentials are active in the attached `Insights` model node. The AI outputs a structured JSON response containing the market summary and allocation advice.
 
-### 4. Switch Routing
+**5. Charting and Delivery**
 
-Based on calculated usage:
+While the AI processes text, the `Generate Chart` node transforms the price arrays into a QuickChart visual. Everything is combined in the `Generate Final Report` node, which builds the HTML structure. Finally, the `Check Performance Gap` node decides whether to trigger the `Send Report Email` or the `Send Alert Email`.
 
-- **80%** → Slack notification
-- **90%** → Jira ticket + Slack notification
-- **100%** → Gmail alert + Jira ticket + Slack notification
+## How To Customize Nodes
 
-### 5. Configure Integrations
+* **Set Analysis Parameters:**
 
-Configure the following nodes:
+Update this node before every manual run to target different weeks, months or quarters.
 
-- **Slack** → Set the destination channel ID.
-- **Jira** → Configure project and issue type.
-- **Gmail** → Specify recipient email address.
+* **Generate AI Investment Insights:**
 
-### 6. Test Workflow
+Open the system prompt options in this node to change the AI's "personality." You can ask it to be more conservative, aggressive or to focus strictly on macroeconomic trends.
 
-Send sample webhook payloads representing each threshold and verify that:
+* **Generate Chart:**
 
-- Slack notifications are delivered.
-- Jira issues are created.
-- Critical emails are sent.
+Open the JavaScript code in this node to customize the aesthetics. You can change line colors, adjust the line tension or switch the chart type from `"line"` to `"bar"`.
 
-### 7. Activate
+* **Email Nodes:**
 
-Enable the workflow after successful testing.
+Customize the HTML body or change the target email addresses. You can add CCs or BCCs for broader team distribution.
 
-## How To Customize
+## Add‑ons
 
-- **Webhook Node** → Change endpoint path or add authentication.
-- **Validation Node** → Validate additional fields such as plan or account owner.
-- **Calculation Node** → Modify threshold calculations.
-- **Switch Node** → Adjust percentage ranges.
-- **Slack Node** → Customize notification messages and channels.
-- **Jira Node** → Modify issue templates and priorities.
-- **Gmail Node** → Update recipients, subject lines and email templates.
+* **Slack / Discord Integration:**
 
-## Add-ons & Enhancements
+Swap the Gmail nodes for messaging app nodes to drop these reports directly into a company finance channel.
 
-- Alert deduplication to avoid repeated notifications
-- Store usage history in Google Sheets or a database
-- Notify multiple email recipients
-- Integrate with CRM or billing platforms
-- Add cooldown periods or rate limiting
-- Enrich partner information using external APIs
+* **Live Data APIs:**
+
+Replace the Google Sheets fetch nodes with direct HTTP requests to Yahoo Finance or Alpha Vantage to pull real-time market data on the fly.
+
+* **PDF Generation:**
+
+Add a tool to convert the generated HTML payload into a polished PDF document, making it easier to attach to client emails.
 
 ## Use Case Examples
 
-- Monitor API usage for SaaS partners.
-- Prevent service disruptions before quota exhaustion.
-- Automatically trigger internal review workflows.
-- Notify account managers for upgrade opportunities.
-- Improve operational visibility across engineering and customer success teams.
+1. **Weekly Wealth Management Reporting:**
+
+Automatically send weekly asset comparison summaries to high-net-worth clients to keep them informed on their portfolio balances.
+
+1. **Automated Wealth Plan Generator:**
+
+Feed the AI's allocation advice from this workflow directly into a broader wealth-planning system to calculate user eligibility and adjust debt-to-equity ratios.
+
+1. **Market Volatility Alerts:**
+
+Run this workflow daily on a schedule. If safe-haven assets (Gold) suddenly spike in comparison to risk assets (Equity), your team receives an immediate warning to adjust trading strategies.
+
+1. **Crypto vs. Traditional Markets:**
+
+Repurpose the workflow by simply changing the input sheets to compare Bitcoin performance against traditional S&P 500 index funds.
+
+1. **Real Estate vs. Stocks:**
+
+Adjust the data sources to compare local housing market indices against stock market growth over a multi-year period.
 
 ## Troubleshooting Guide
 
 | Issue | Possible Cause | Solution |
-|--------|----------------|----------|
-| Workflow not triggering | Webhook not called | Verify webhook URL and HTTP method |
-| Invalid payload error | Missing required fields | Ensure all required fields are included |
-| Slack message not sent | Incorrect channel or credentials | Reconfigure Slack credentials and channel |
-| Jira ticket not created | Invalid project or API issue | Verify Jira credentials and project settings |
-| Email not sent | Gmail OAuth issue | Reconnect Gmail account |
-| Incorrect usage percentage | Invalid data format | Ensure quota and consumed values are numeric |
+| --- | --- | --- |
+| **Workflow fails at "Fetch Prices" nodes** | Google Sheets credentials expired or Sheet ID is incorrect. | Re-authenticate your Google OAuth2 credentials and ensure you have selected the correct document and sheet tab from the node dropdowns. |
+| **"Invalid JSON from AI" error** | The Groq LLM returned conversational text (like "Here is your data:") instead of raw JSON. | Open the `Generate AI Investment Insights` node and ensure the system prompt strictly demands "Output ONLY valid JSON." You may also need to adjust the temperature setting on the Llama model. |
+| **Chart image is broken in email** | The data arrays are empty or the QuickChart URL exceeded character limits. | Verify that the `Merge Market Data` node successfully matched dates for both assets. If comparing years of data, consider calculating weekly averages instead of daily to shorten the URL string. |
+| **No emails are being received** | Gmail node misconfigured or blocked by Google security. | Check the Gmail credential connection. Ensure the recipient email address is valid and check your spam folder. |
+| **Google Sheets history not updating** | The `Store Report History` node is mapping to the wrong column headers. | Ensure your destination Google Sheet has exact column headers for "Date", "Winner", "Summary" and "Report" as defined in the node's schema. |
 
 ## Need Help?
 
-If you need help customizing this workflow, integrating it with your partner management platform, or extending it with advanced API monitoring, reporting, and intelligent alerting, our **WeblineIndia** team is ready to assist.
-
-Explore our **[Process Automation Solutions](https://www.weblineindia.com/process-automation-solutions.html)** or connect with our **[n8n workflow development experts](https://www.weblineindia.com/n8n-automation/)** to build, customize, and scale your business automation with confidence.
+If you need help customizing this workflow, integrating it with your customer support ecosystem, or extending it with AI-powered ticket routing, sentiment analysis, and reporting, our **WeblineIndia** team is ready to assist. Explore our **[Process Automation Solutions](https://www.weblineindia.com/process-automation-solutions.html)** or connect with our **[n8n workflow development experts](https://www.weblineindia.com/n8n-automation/)** to build, customize, and scale your business automation with confidence.
